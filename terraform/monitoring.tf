@@ -11,7 +11,6 @@ resource "google_monitoring_notification_channel" "email" {
 }
 
 # Uptime check — polls the app's /health endpoint every minute
-# NOTE: After first deploy, update `host` to your LoadBalancer external IP
 resource "google_monitoring_uptime_check_config" "app_health" {
   display_name = "demo-app-health"
   timeout      = "10s"
@@ -34,7 +33,7 @@ resource "google_monitoring_uptime_check_config" "app_health" {
   }
 }
 
-# Alert policy — fires if uptime check fails for 2+ minutes
+# Alert policy — fires if uptime check fails
 resource "google_monitoring_alert_policy" "uptime_failure" {
   display_name = "Demo App Down"
   combiner     = "OR"
@@ -51,8 +50,7 @@ resource "google_monitoring_alert_policy" "uptime_failure" {
       aggregations {
         alignment_period     = "60s"
         per_series_aligner   = "ALIGN_FRACTION_TRUE"
-        cross_series_reducer = "REDUCE_COUNT_FALSE"
-        group_by_fields      = ["resource.label.*"]
+        # Fixed: removed cross_series_reducer — not compatible with DOUBLE metric type
       }
     }
   }
@@ -60,11 +58,11 @@ resource "google_monitoring_alert_policy" "uptime_failure" {
   notification_channels = [google_monitoring_notification_channel.email.name]
 
   alert_strategy {
-    auto_close = "1800s" # Auto-close after 30 min of recovery
+    auto_close = "1800s"
   }
 }
 
-# Alert: High pod restart rate (signals crashlooping)
+# Alert: High pod restart rate
 resource "google_monitoring_alert_policy" "pod_restarts" {
   display_name = "Demo App — High Restart Rate"
   combiner     = "OR"
